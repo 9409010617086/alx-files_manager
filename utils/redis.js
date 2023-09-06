@@ -1,58 +1,44 @@
-import { createClient } from "redis"
+import { createClient } from 'redis';
 import { promisify } from 'util';
 
-class RedisClient{
+// class to define methods for commonly used redis commands
+class RedisClient {
   constructor() {
     this.client = createClient();
-    this.getAsync = promisify(this.client.get).bind(this.client);
-
     this.client.on('error', (error) => {
-      console.log(`Redis client not connected to the server: ${error.message}`);
+      console.log(`Redis client not connected to server: ${error}`);
     });
-
-    this.client.on('connect', () => {
-
-    });
-
   }
 
-    /**
-    * 
-    */
-    isAlive() {
-      return this.client.connected;
+  // check connection status and report
+  isAlive() {
+    if (this.client.connected) {
+      return true;
+    }
+    return false;
   }
 
-    /**
-     * 
-     * @param {*} key 
-     * @returns 
-     */
-    async get(key) {
-      value = await this.getAsync(key)
-      return value
+  // get value for given key from redis server
+  async get(key) {
+    const redisGet = promisify(this.client.get).bind(this.client);
+    const value = await redisGet(key);
+    return value;
   }
 
-    /**
-     * 
-     * @param {*} key 
-     * @param {*} value 
-     * @param {*} time 
-     */
-    async set(key, value, time) {
-      this.client.setEx(key, value, time);
+  // set key value pair to redis server
+  async set(key, value, time) {
+    const redisSet = promisify(this.client.set).bind(this.client);
+    await redisSet(key, value);
+    await this.client.expire(key, time);
   }
 
-    /**
-     * 
-     * @param {*} key 
-     */
-    async del(key) {
-      this.client.del(key)
+  // del key vale pair from redis server
+  async del(key) {
+    const redisDel = promisify(this.client.del).bind(this.client);
+    await redisDel(key);
   }
 }
 
-const RedisClient = new RedisClient();
+const redisClient = new RedisClient();
 
-export default RedisClient;
-
+module.exports = redisClient;
